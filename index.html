@@ -312,34 +312,29 @@ async function fetchNews() {
     </div>`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const GEMINI_KEY = 'AIzaSyDyMnKSTAjfwPJLrPtOPSmmU3gvwOoiMTs';
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2048,
-        system: `あなたは歴史的なニュースアーカイブのアシスタントです。
-指定された年に実際に起きた重要な出来事を、新聞記事風に5〜7件、日本語で報告してください。
-必ず以下のJSON形式のみで返してください（余計なテキスト不要）:
-{
-  "articles": [
-    {
-      "category": "カテゴリ（政治/経済/社会/スポーツ/科学/文化など）",
-      "headline": "見出し（20〜40字程度）",
-      "body": "本文（80〜120字程度）"
-    }
-  ]
-}`,
-        messages: [{ role: "user", content: `${year}年に起きた重要なニュースを教えてください。` }]
+        contents: [{
+          parts: [{
+            text: `あなたは歴史的なニュースアーカイブのアシスタントです。
+${year}年に実際に起きた重要な出来事を、新聞記事風に5〜7件、日本語で報告してください。
+必ず以下のJSON形式のみで返してください（余計なテキスト・コードブロック不要）:
+{"articles":[{"category":"カテゴリ（政治/経済/社会/スポーツ/科学/文化など）","headline":"見出し（20〜40字程度）","body":"本文（80〜120字程度）"}]}`
+          }]
+        }],
+        generationConfig: { maxOutputTokens: 2048 }
       })
     });
 
     const data = await response.json();
 
     if (data.error) throw new Error(`APIエラー: ${data.error.message || JSON.stringify(data.error)}`);
-    if (!data.content?.length) throw new Error(`レスポンス異常: ${JSON.stringify(data)}`);
+    if (!data.candidates?.length) throw new Error(`レスポンス異常: ${JSON.stringify(data)}`);
 
-    const text = data.content.map(i => i.text || '').join('');
+    const text = data.candidates[0].content.parts.map(p => p.text || '').join('');
 
     let parsed;
     const jsonStart = text.indexOf('{');
